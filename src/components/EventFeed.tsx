@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Flame, Swords, Scissors, Crown, UserPlus, Sparkles } from 'lucide-react';
 import { FeedItem } from '../types';
 
 interface EventFeedProps {
@@ -10,7 +9,6 @@ interface EventFeedProps {
 export const EventFeed: React.FC<EventFeedProps> = ({ feed }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll feed to latest bottom item
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -18,17 +16,17 @@ export const EventFeed: React.FC<EventFeedProps> = ({ feed }) => {
   }, [feed]);
 
   return (
-    <div className="absolute bottom-28 left-2 z-20 pointer-events-auto max-w-[220px] sm:max-w-[280px] w-full">
+    <div className="absolute bottom-28 left-2 z-20 pointer-events-auto max-w-[180px] sm:max-w-[210px] w-full">
       <div
         ref={containerRef}
-        className="max-h-[160px] sm:max-h-[200px] overflow-y-auto no-scrollbar flex flex-col gap-1.5 p-1 rounded-2xl mask-linear-fade"
+        className="max-h-[130px] sm:max-h-[160px] overflow-y-auto no-scrollbar flex flex-col gap-1 p-0.5 rounded-xl mask-linear-fade"
         style={{
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 25%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 25%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 22%)',
         }}
       >
         <AnimatePresence initial={false}>
-          {feed.slice(-12).map((item) => {
+          {feed.slice(-8).map((item) => {
             let bgClass = 'bg-slate-950/70 border-white/10 text-slate-200';
             let icon = '💬';
 
@@ -52,14 +50,14 @@ export const EventFeed: React.FC<EventFeedProps> = ({ feed }) => {
             return (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, x: -15, scale: 0.95 }}
+                initial={{ opacity: 0, x: -12, scale: 0.97 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className={`text-[11px] sm:text-xs px-2.5 py-1 rounded-xl backdrop-blur-md border shadow-md flex items-start gap-1.5 ${bgClass}`}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.18 }}
+                className={`text-[10px] px-2 py-1 rounded-xl backdrop-blur-md border shadow-md flex items-start gap-1.5 ${bgClass}`}
               >
-                <span className="text-sm select-none shrink-0">{item.icon || icon}</span>
-                <div className="leading-tight break-words">
+                <span className="text-[12px] leading-none select-none shrink-0">{item.icon || icon}</span>
+                <div className="leading-tight break-words min-w-0">
                   {item.nickname && (
                     <span className="font-extrabold mr-1 text-white opacity-90">
                       @{item.nickname}
