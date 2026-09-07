@@ -29,7 +29,7 @@ export function drawKiteOnCanvas(
   }
   ctx.scale(scale, scale);
 
-  const size = kite.shape === 'pipao' ? 36 : kite.shape === 'peixinho' ? 24 : 28;
+  const size = kite.shape === 'pipao' ? 26 : kite.shape === 'peixinho' ? 18 : 22;
 
   // Draw Kite Skin according to shape & pattern
   drawKiteShape(ctx, kite.shape, kite.primaryColor, kite.secondaryColor, kite.pattern, size);
