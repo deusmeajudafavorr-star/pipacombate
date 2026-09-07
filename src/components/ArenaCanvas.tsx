@@ -5,7 +5,7 @@ import { drawKiteOnCanvas } from '../utils/kites';
 interface ArenaCanvasProps {
   kites: KiteState[];
   currentBattle: BattleState | null;
-  windSpeed: number; // multiplier
+  windSpeed: number;
   onCanvasClick?: (x: number, y: number) => void;
 }
 
@@ -37,35 +37,33 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const clashSparksRef = useRef<{ x: number; y: number; vx: number; vy: number; color: string; life: number }[]>([]);
 
-  // Initialize background clouds & wind particles
   useEffect(() => {
     const clouds: Cloud[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       clouds.push({
         x: Math.random() * 800,
-        y: 40 + Math.random() * 250,
-        size: 35 + Math.random() * 45,
-        speed: 0.2 + Math.random() * 0.4,
-        opacity: 0.25 + Math.random() * 0.35,
+        y: 50 + Math.random() * 220,
+        size: 30 + Math.random() * 38,
+        speed: 0.2 + Math.random() * 0.35,
+        opacity: 0.2 + Math.random() * 0.25,
       });
     }
     cloudsRef.current = clouds;
 
     const particles: Particle[] = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 18; i++) {
       particles.push({
         x: Math.random() * 800,
         y: Math.random() * 600,
-        vx: 0.5 + Math.random() * 1.5,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: 1.5 + Math.random() * 2,
-        opacity: 0.3 + Math.random() * 0.5,
+        vx: 0.5 + Math.random() * 1.4,
+        vy: (Math.random() - 0.5) * 0.25,
+        size: 1.2 + Math.random() * 1.6,
+        opacity: 0.2 + Math.random() * 0.35,
       });
     }
     particlesRef.current = particles;
   }, []);
 
-  // Main 60 FPS Canvas Render Loop
   useEffect(() => {
     let animationFrameId: number;
 
@@ -78,21 +76,19 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
       const width = canvas.width;
       const height = canvas.height;
 
-      // 1. Clear & Draw Animated Sky Gradient
       const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
-      skyGradient.addColorStop(0, '#0f172a'); // Dark slate top
-      skyGradient.addColorStop(0.3, '#1e3a8a'); // Deep navy
-      skyGradient.addColorStop(0.7, '#0284c7'); // Bright sky blue
-      skyGradient.addColorStop(1, '#38bdf8'); // Horizon sky
+      skyGradient.addColorStop(0, '#0f172a');
+      skyGradient.addColorStop(0.3, '#1e3a8a');
+      skyGradient.addColorStop(0.72, '#0284c7');
+      skyGradient.addColorStop(1, '#38bdf8');
       ctx.fillStyle = skyGradient;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. Draw Moving Clouds
+      // Nuvens
       ctx.fillStyle = '#ffffff';
       cloudsRef.current.forEach((cloud) => {
         cloud.x += cloud.speed * windSpeed;
         if (cloud.x > width + 100) cloud.x = -100;
-
         ctx.save();
         ctx.globalAlpha = cloud.opacity;
         ctx.beginPath();
@@ -103,13 +99,12 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         ctx.restore();
       });
 
-      // 3. Draw Wind Particles
+      // Partículas de vento
       particlesRef.current.forEach((p) => {
         p.x += p.vx * windSpeed;
         p.y += p.vy;
         if (p.x > width) p.x = 0;
         if (p.y > height || p.y < 0) p.y = Math.random() * height;
-
         ctx.save();
         ctx.globalAlpha = p.opacity;
         ctx.fillStyle = '#fef08a';
@@ -119,37 +114,63 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         ctx.restore();
       });
 
-      // 4. Draw Horizon Silhouettes (City & Trees at the bottom)
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      // Montanhas distantes
+      const farBase = height - 90;
+      ctx.fillStyle = 'rgba(15, 40, 70, 0.55)';
       ctx.beginPath();
       ctx.moveTo(0, height);
-      // Small roof & tree skyline
-      ctx.lineTo(0, height - 35);
-      ctx.lineTo(40, height - 35);
-      ctx.lineTo(50, height - 55);
-      ctx.lineTo(60, height - 35);
-      ctx.lineTo(120, height - 35);
-      ctx.lineTo(135, height - 65);
-      ctx.lineTo(160, height - 35);
-      ctx.lineTo(240, height - 35);
-      ctx.lineTo(260, height - 50);
-      ctx.lineTo(310, height - 35);
-      ctx.lineTo(width, height - 35);
+      ctx.lineTo(0, farBase);
+      ctx.lineTo(55, farBase - 75);
+      ctx.lineTo(105, farBase - 20);
+      ctx.lineTo(165, farBase - 105);
+      ctx.lineTo(225, farBase - 35);
+      ctx.lineTo(300, farBase - 125);
+      ctx.lineTo(370, farBase - 30);
+      ctx.lineTo(430, farBase - 90);
+      ctx.lineTo(width, farBase - 5);
       ctx.lineTo(width, height);
       ctx.closePath();
       ctx.fill();
 
-      // 5. Draw Active Kites
-      kites.forEach((kite) => {
-        drawKiteOnCanvas(ctx, kite, width, height, time);
+      // Montanhas em primeiro plano
+      const nearBase = height - 35;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(0, nearBase);
+      ctx.lineTo(45, nearBase - 52);
+      ctx.lineTo(95, nearBase - 10);
+      ctx.lineTo(150, nearBase - 76);
+      ctx.lineTo(205, nearBase - 18);
+      ctx.lineTo(260, nearBase - 58);
+      ctx.lineTo(320, nearBase - 12);
+      ctx.lineTo(380, nearBase - 70);
+      ctx.lineTo(445, nearBase - 20);
+      ctx.lineTo(width, nearBase - 42);
+      ctx.lineTo(width, height);
+      ctx.closePath();
+      ctx.fill();
+
+      // Pipás mais afastadas visualmente, sem alterar a física da batalha.
+      const displayScaleX = 1.24;
+      const displayScaleY = 1.12;
+      const displayKite = (kite: KiteState): KiteState => ({
+        ...kite,
+        x: Math.max(6, Math.min(94, 50 + (kite.x - 50) * displayScaleX)),
+        y: Math.max(8, Math.min(72, 40 + (kite.y - 40) * displayScaleY)),
       });
 
-      // 6. Draw Clash Sparks during active battle
-      if (currentBattle && currentBattle.status === 'clashing') {
-        const bx = (currentBattle.x / 100) * width;
-        const by = (currentBattle.y / 100) * height;
+      kites.forEach((kite) => {
+        drawKiteOnCanvas(ctx, displayKite(kite), width, height, time);
+      });
 
-        // Spawn new sparks
+      // Faíscas da batalha acompanham a nova posição visual.
+      if (currentBattle && currentBattle.status === 'clashing') {
+        const battleX = Math.max(6, Math.min(94, 50 + (currentBattle.x - 50) * displayScaleX));
+        const battleY = Math.max(8, Math.min(72, 40 + (currentBattle.y - 40) * displayScaleY));
+        const bx = (battleX / 100) * width;
+        const by = (battleY / 100) * height;
+
         if (Math.random() < 0.6) {
           for (let i = 0; i < 3; i++) {
             clashSparksRef.current.push({
@@ -158,17 +179,15 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
               vx: (Math.random() - 0.5) * 6,
               vy: (Math.random() - 0.5) * 6,
               color: i % 2 === 0 ? '#facc15' : '#ef4444',
-              life: 1.0,
+              life: 1,
             });
           }
         }
 
-        // Draw and update sparks
         clashSparksRef.current.forEach((spark) => {
           spark.x += spark.vx;
           spark.y += spark.vy;
           spark.life -= 0.05;
-
           if (spark.life > 0) {
             ctx.save();
             ctx.globalAlpha = spark.life;
@@ -179,7 +198,6 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
             ctx.restore();
           }
         });
-
         clashSparksRef.current = clashSparksRef.current.filter((s) => s.life > 0);
       }
 
@@ -187,19 +205,13 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
     };
 
     animationFrameId = requestAnimationFrame(render);
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
+    return () => cancelAnimationFrame(animationFrameId);
   }, [kites, currentBattle, windSpeed]);
 
-  // Canvas Click / Tap Handler (Spawns Likes / Interactive Hearts)
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || !onCanvasClick) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    onCanvasClick(x, y);
+    onCanvasClick(e.clientX - rect.left, e.clientY - rect.top);
   };
 
   return (
