@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Send, RefreshCw, Palette, Zap, Flame } from 'lucide-react';
+import { Send, RefreshCw, Palette, Zap, Flame, RotateCcw } from 'lucide-react';
 
 interface BottomInputBarProps {
   userKiteActive: boolean;
@@ -11,6 +11,7 @@ interface BottomInputBarProps {
   onJoinBattle: (nickname: string) => void;
   onRespawn: () => void;
   onOpenCustomizer: () => void;
+  onResetArena: () => void;
   onRequestInstantBattle?: () => void;
 }
 
@@ -23,6 +24,7 @@ export const BottomInputBar: React.FC<BottomInputBarProps> = ({
   onJoinBattle,
   onRespawn,
   onOpenCustomizer,
+  onResetArena,
   onRequestInstantBattle,
 }) => {
   const [nicknameInput, setNicknameInput] = useState('');
@@ -122,6 +124,16 @@ export const BottomInputBar: React.FC<BottomInputBarProps> = ({
           >
             <span>SOLTAR PIPA</span>
             <Send className="w-3.5 h-3.5 fill-slate-950" />
+          </button>
+
+          <button
+            type="button"
+            onClick={onResetArena}
+            title="Resetar arena e remover todas as pipas"
+            aria-label="Resetar arena"
+            className="p-2.5 rounded-xl bg-slate-800/95 border border-red-400/40 text-red-300 hover:bg-red-950/70 hover:text-red-200 active:scale-95 transition shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </form>
 
