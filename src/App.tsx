@@ -12,13 +12,11 @@ import {
   LineType,
 } from './types';
 
-import { HeaderOverlay } from './components/HeaderOverlay';
 import { ArenaCanvas } from './components/ArenaCanvas';
 import { BattleBannerOverlay } from './components/BattleBannerOverlay';
 import { RankingPanel } from './components/RankingPanel';
 import { EventFeed } from './components/EventFeed';
 import { BottomInputBar } from './components/BottomInputBar';
-import { ArenaEventBanner } from './components/ArenaEventBanner';
 import { TikTokHearts } from './components/TikTokHearts';
 import { KiteCustomizerModal } from './components/KiteCustomizerModal';
 
@@ -89,7 +87,7 @@ export default function App() {
   // TikTok Hearts
   const [hearts, setHearts] = useState<TikTokHeart[]>([]);
 
-  // Ref to access最新 kites inside interval loops without stale closures
+  // Ref to access kites inside interval loops without stale closures
   const kitesRef = useRef<KiteState[]>([]);
   kitesRef.current = kites;
 
@@ -158,7 +156,6 @@ export default function App() {
 
     setKites(initialKites);
 
-    // Initial welcome feed items
     addFeedItem({
       type: 'event',
       nickname: 'SISTEMA',
@@ -180,9 +177,7 @@ export default function App() {
         return prevKites.map((kite) => {
           if (kite.status === 'falling') {
             const nextFallProgress = kite.fallProgress + 0.02;
-            if (nextFallProgress >= 1) {
-              return null; // Remove fallen kite
-            }
+            if (nextFallProgress >= 1) return null;
             return {
               ...kite,
               y: kite.y + 1.2,
@@ -204,11 +199,9 @@ export default function App() {
             };
           }
 
-          // Flying & Wandering physics
           let targetX = kite.targetX;
           let targetY = kite.targetY;
 
-          // Occasionally pick new random target
           if (Math.random() < 0.02) {
             targetX = 10 + Math.random() * 80;
             targetY = 15 + Math.random() * 55;
@@ -216,17 +209,13 @@ export default function App() {
 
           const dx = targetX - kite.x;
           const dy = targetY - kite.y;
-
           const vx = kite.vx * 0.95 + dx * 0.005 * windSpeed;
           const vy = kite.vy * 0.95 + dy * 0.005 * windSpeed;
-
           const nextX = Math.max(8, Math.min(92, kite.x + vx));
           const nextY = Math.max(12, Math.min(68, kite.y + vy));
-
           const targetAngle = vx * 25;
           const angle = kite.angle + (targetAngle - kite.angle) * 0.1;
 
-          // Update Tail (Rabiola) nodes
           const pixelX = (nextX / 100) * 450;
           const pixelY = (nextY / 100) * 800;
           const newNodes = [...(kite.tailNodes || [])];
@@ -307,12 +296,7 @@ export default function App() {
         };
 
         setKites((prev) => [...prev, newBot]);
-        addFeedItem({
-          type: 'join',
-          nickname: name,
-          message: 'entrou voando na arena!',
-          icon: '🔥',
-        });
+        addFeedItem({ type: 'join', nickname: name, message: 'entrou voando na arena!', icon: '🔥' });
       }
     }, 4000);
 
@@ -329,13 +313,7 @@ export default function App() {
           const randomKite = activeKites[Math.floor(Math.random() * activeKites.length)];
           const spectator = `Torcedor_${Math.floor(Math.random() * 899 + 100)}`;
           const msg = commentTemplate.replace('{name}', randomKite.nickname);
-
-          addFeedItem({
-            type: 'comment',
-            nickname: spectator,
-            message: msg,
-            icon: '💬',
-          });
+          addFeedItem({ type: 'comment', nickname: spectator, message: msg, icon: '💬' });
         }
       }
     }, 6000);
@@ -343,7 +321,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [addFeedItem]);
 
-  // Execute Automatic Battle Sequence
   const triggerBattle = useCallback(
     (forcedChallengerId?: string) => {
       if (battleInProgressRef.current) return;
@@ -360,7 +337,6 @@ export default function App() {
       }
 
       if (!kite1 || !kite2) {
-        // Pick 2 random nearby kites
         const shuffled = [...activeKites].sort(() => Math.random() - 0.5);
         kite1 = shuffled[0];
         kite2 = shuffled[1];
@@ -369,8 +345,6 @@ export default function App() {
       if (!kite1 || !kite2 || kite1.id === kite2.id) return;
 
       battleInProgressRef.current = true;
-
-      // 1. Alert Stage
       soundFX.playBattleAlert();
 
       const bx = (kite1.x + kite2.x) / 2;
@@ -394,7 +368,6 @@ export default function App() {
       };
 
       setCurrentBattle(newBattle);
-
       addFeedItem({
         type: 'battle_start',
         nickname: kite1.nickname,
@@ -403,117 +376,56 @@ export default function App() {
         icon: '⚔️',
       });
 
-      // Move kites towards battle collision point
       setKites((prev) =>
-        prev.map((k) => {
-          if (k.id === kite1?.id || k.id === kite2?.id) {
-            return {
-              ...k,
-              targetX: bx + (Math.random() - 0.5) * 6,
-              targetY: by + (Math.random() - 0.5) * 6,
-              status: 'battling',
-            };
-          }
-          return k;
-        })
+        prev.map((k) =>
+          k.id === kite1?.id || k.id === kite2?.id
+            ? { ...k, targetX: bx + (Math.random() - 0.5) * 6, targetY: by + (Math.random() - 0.5) * 6, status: 'battling' }
+            : k
+        )
       );
 
-      // 2. Clashing Stage (Lines tension & sparks)
       setTimeout(() => {
         soundFX.playLineClash();
         setCurrentBattle((prev) => (prev ? { ...prev, status: 'clashing' } : null));
       }, 1000);
 
-      // 3. Resolve Outcome
       setTimeout(() => {
-        // Calculate Winner with dynamic odds (Score + Line Bonus + Underdog Luck)
         const score1 = kite1.score + (kite1.lineType !== 'linha10' ? 15 : 0);
         const score2 = kite2.score + (kite2.lineType !== 'linha10' ? 15 : 0);
-
         const totalWeight = score1 + score2 + 50;
         const prob1 = (score1 + 25) / totalWeight;
-
         const kite1Wins = Math.random() < prob1;
         const winner = kite1Wins ? kite1 : kite2;
         const loser = kite1Wins ? kite2 : kite1;
 
         soundFX.playCutSnap();
+        if (loser.id === userKiteId) setUserKiteCut(true);
 
-        // Check if user was defeated
-        if (loser.id === userKiteId) {
-          setUserKiteCut(true);
-        }
-
-        // Apply Winner Rewards & Loser Fall
         setKites((prev) =>
           prev.map((k) => {
             if (k.id === winner.id) {
               const nextCombo = k.combo + 1;
               const nextScore = k.score + 10 * Math.min(nextCombo, 5);
-
-              // Confetti if user won!
               if (k.isUser) {
-                confetti({
-                  particleCount: 70,
-                  spread: 60,
-                  origin: { y: 0.6 },
-                });
+                confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
                 soundFX.playVictory();
               }
-
-              return {
-                ...k,
-                score: nextScore,
-                wins: k.wins + 1,
-                combo: nextCombo,
-                status: 'victorious',
-              };
+              return { ...k, score: nextScore, wins: k.wins + 1, combo: nextCombo, status: 'victorious' };
             }
-            if (k.id === loser.id) {
-              return {
-                ...k,
-                status: 'falling',
-                fallProgress: 0,
-                fallAngle: 0,
-                combo: 1,
-              };
-            }
+            if (k.id === loser.id) return { ...k, status: 'falling', fallProgress: 0, fallAngle: 0, combo: 1 };
             return k;
           })
         );
 
         const winnerCombo = winner.combo + 1;
         const pointsGained = 10 * Math.min(winnerCombo, 5);
-
-        // Announce Victory
-        setVictoryAnnouncement({
-          winnerName: winner.nickname,
-          loserName: loser.nickname,
-          combo: winnerCombo,
-          score: pointsGained,
-        });
-
-        addFeedItem({
-          type: 'battle_win',
-          nickname: winner.nickname,
-          targetNickname: loser.nickname,
-          message: `CORTOU @${loser.nickname}! (+${pointsGained} pts)`,
-          icon: '✂️',
-        });
-
-        // Update Total Battles Count
-        setStats((prev) => ({
-          ...prev,
-          totalBattles: prev.totalBattles + 1,
-        }));
-
+        setVictoryAnnouncement({ winnerName: winner.nickname, loserName: loser.nickname, combo: winnerCombo, score: pointsGained });
+        addFeedItem({ type: 'battle_win', nickname: winner.nickname, targetNickname: loser.nickname, message: `CORTOU @${loser.nickname}! (+${pointsGained} pts)`, icon: '✂️' });
+        setStats((prev) => ({ ...prev, totalBattles: prev.totalBattles + 1 }));
         setCurrentBattle(null);
 
-        // Reset Victor status after brief delay
         setTimeout(() => {
-          setKites((prev) =>
-            prev.map((k) => (k.id === winner.id ? { ...k, status: 'flying' } : k))
-          );
+          setKites((prev) => prev.map((k) => (k.id === winner.id ? { ...k, status: 'flying' } : k)));
           setVictoryAnnouncement(null);
           battleInProgressRef.current = false;
         }, 2200);
@@ -524,10 +436,7 @@ export default function App() {
 
   // Auto Battle Trigger Timer
   useEffect(() => {
-    const battleInterval = setInterval(() => {
-      triggerBattle();
-    }, 7000);
-
+    const battleInterval = setInterval(() => triggerBattle(), 7000);
     return () => clearInterval(battleInterval);
   }, [triggerBattle]);
 
@@ -540,35 +449,14 @@ export default function App() {
 
     if (topLeader && topLeader.score > 0 && topLeader.id !== currentLeaderIdRef.current) {
       currentLeaderIdRef.current = topLeader.id;
-
-      // Update crown status on kites
       setKites((prev) =>
-        prev.map((k) => ({
-          ...k,
-          crown: k.id === topLeader.id,
-          rank: sorted.findIndex((sk) => sk.id === k.id) + 1,
-        }))
+        prev.map((k) => ({ ...k, crown: k.id === topLeader.id, rank: sorted.findIndex((sk) => sk.id === k.id) + 1 }))
       );
-
       setNewLeaderAlert(topLeader.nickname);
-      addFeedItem({
-        type: 'new_leader',
-        nickname: topLeader.nickname,
-        message: 'assumiu o TOP 1 e é o NOVO LÍDER DA ARENA! 👑',
-        icon: '🚨',
-      });
-
-      setTimeout(() => {
-        setNewLeaderAlert(null);
-      }, 3500);
+      addFeedItem({ type: 'new_leader', nickname: topLeader.nickname, message: 'assumiu o TOP 1 e é o NOVO LÍDER DA ARENA! 👑', icon: '🚨' });
+      setTimeout(() => setNewLeaderAlert(null), 3500);
     } else {
-      // Just update ranks
-      setKites((prev) =>
-        prev.map((k) => ({
-          ...k,
-          rank: sorted.findIndex((sk) => sk.id === k.id) + 1,
-        }))
-      );
+      setKites((prev) => prev.map((k) => ({ ...k, rank: sorted.findIndex((sk) => sk.id === k.id) + 1 })));
     }
   }, [kites, addFeedItem]);
 
@@ -577,57 +465,19 @@ export default function App() {
     const eventInterval = setInterval(() => {
       if (Math.random() < 0.45 && !currentEvent) {
         const eventsList: { type: ArenaEvent['type']; title: string; desc: string; icon: string }[] = [
-          {
-            type: 'VENTO_FORTE',
-            title: '🌪️ VENTO FORTE!',
-            desc: 'A ventania acelerou todas as pipas na arena!',
-            icon: '🌪️',
-          },
-          {
-            type: 'BATALHA_DUPLA',
-            title: '⚡ BATALHA DUPLA!',
-            desc: 'Confrontos instantâneos nos céus!',
-            icon: '⚔️',
-          },
-          {
-            type: 'MODO_INSANO',
-            title: '🔥 MODO INSANO!',
-            desc: 'Frequência de combates multiplicada!',
-            icon: '🔥',
-          },
-          {
-            type: 'DESAFIO_CAMPEAO',
-            title: '🎯 DESAFIO DO CAMPEÃO!',
-            desc: 'A arena está buscando desafiar o líder do ranking!',
-            icon: '👑',
-          },
+          { type: 'VENTO_FORTE', title: '🌪️ VENTO FORTE!', desc: 'A ventania acelerou todas as pipas na arena!', icon: '🌪️' },
+          { type: 'BATALHA_DUPLA', title: '⚡ BATALHA DUPLA!', desc: 'Confrontos instantâneos nos céus!', icon: '⚔️' },
+          { type: 'MODO_INSANO', title: '🔥 MODO INSANO!', desc: 'Frequência de combates multiplicada!', icon: '🔥' },
+          { type: 'DESAFIO_CAMPEAO', title: '🎯 DESAFIO DO CAMPEÃO!', desc: 'A arena está buscando desafiar o líder do ranking!', icon: '👑' },
         ];
 
         const ev = eventsList[Math.floor(Math.random() * eventsList.length)];
-
-        const newEvent: ArenaEvent = {
-          id: `ev_${Date.now()}`,
-          type: ev.type,
-          title: ev.title,
-          description: ev.desc,
-          icon: ev.icon,
-          expiresAt: Date.now() + 8000,
-        };
-
+        const newEvent: ArenaEvent = { id: `ev_${Date.now()}`, type: ev.type, title: ev.title, description: ev.desc, icon: ev.icon, expiresAt: Date.now() + 8000 };
         setCurrentEvent(newEvent);
+        addFeedItem({ type: 'event', nickname: 'ARENA', message: `${ev.title} ${ev.desc}`, icon: ev.icon });
 
-        addFeedItem({
-          type: 'event',
-          nickname: 'ARENA',
-          message: `${ev.title} ${ev.desc}`,
-          icon: ev.icon,
-        });
-
-        if (ev.type === 'VENTO_FORTE') {
-          setWindSpeed(2.2);
-        } else if (ev.type === 'BATALHA_DUPLA' || ev.type === 'MODO_INSANO') {
-          triggerBattle();
-        }
+        if (ev.type === 'VENTO_FORTE') setWindSpeed(2.2);
+        else if (ev.type === 'BATALHA_DUPLA' || ev.type === 'MODO_INSANO') triggerBattle();
 
         setTimeout(() => {
           setCurrentEvent(null);
@@ -639,13 +489,10 @@ export default function App() {
     return () => clearInterval(eventInterval);
   }, [currentEvent, triggerBattle, addFeedItem]);
 
-  // Handle User Joining Battle
   const handleUserJoin = (nickname: string) => {
     setUserNickname(nickname);
     setUserKiteCut(false);
-
     soundFX.playEnter();
-
     const x = 30 + Math.random() * 40;
     const targetY = 20 + Math.random() * 40;
     const newKiteId = `user_${Date.now()}`;
@@ -671,10 +518,7 @@ export default function App() {
       wins: 0,
       combo: 1,
       status: 'entering',
-      tailNodes: Array.from({ length: 8 }, (_, idx) => ({
-        x: (x / 100) * 450,
-        y: 800 + idx * 12,
-      })),
+      tailNodes: Array.from({ length: 8 }, (_, idx) => ({ x: (x / 100) * 450, y: 800 + idx * 12 })),
       entryProgress: 0,
       fallProgress: 0,
       fallAngle: 0,
@@ -683,63 +527,24 @@ export default function App() {
     };
 
     setUserKiteId(newKiteId);
-
-    // Remove old user kite if any
     setKites((prev) => [...prev.filter((k) => !k.isUser), newUserKite]);
-
-    addFeedItem({
-      type: 'join',
-      nickname,
-      message: 'entrou oficialmente na arena de PIPA COMBATE!',
-      icon: '🔥',
-    });
-
-    confetti({
-      particleCount: 50,
-      spread: 50,
-      origin: { y: 0.8 },
-    });
+    addFeedItem({ type: 'join', nickname, message: 'entrou oficialmente na arena de PIPA COMBATE!', icon: '🔥' });
+    confetti({ particleCount: 50, spread: 50, origin: { y: 0.8 } });
   };
 
-  // Handle User Respawn
   const handleUserRespawn = () => {
-    if (userNickname) {
-      handleUserJoin(userNickname);
-    }
+    if (userNickname) handleUserJoin(userNickname);
   };
 
-  // Save Customizer Options
-  const handleSaveCustomization = (config: {
-    shape: KiteShape;
-    primaryColor: string;
-    secondaryColor: string;
-    pattern: KitePattern;
-    lineType: LineType;
-  }) => {
+  const handleSaveCustomization = (config: { shape: KiteShape; primaryColor: string; secondaryColor: string; pattern: KitePattern; lineType: LineType }) => {
     setUserCustoms(config);
-
     if (userKiteId) {
-      setKites((prev) =>
-        prev.map((k) =>
-          k.id === userKiteId
-            ? {
-                ...k,
-                shape: config.shape,
-                primaryColor: config.primaryColor,
-                secondaryColor: config.secondaryColor,
-                pattern: config.pattern,
-                lineType: config.lineType,
-              }
-            : k
-        )
-      );
+      setKites((prev) => prev.map((k) => k.id === userKiteId ? { ...k, ...config } : k));
     }
   };
 
-  // Canvas Tap Likes Handler
   const handleCanvasClick = (x: number, y: number) => {
     soundFX.playHeartPop();
-
     const colors = ['#f43f5e', '#ec4899', '#a855f7', '#38bdf8', '#facc15'];
     const newHeart: TikTokHeart = {
       id: Math.random().toString(),
@@ -749,69 +554,26 @@ export default function App() {
       scale: 0.8 + Math.random() * 0.6,
       rotation: Math.random() * 40 - 20,
     };
-
     setHearts((prev) => [...prev.slice(-15), newHeart]);
-
-    setStats((prev) => ({
-      ...prev,
-      likeCount: prev.likeCount + 1,
-    }));
+    setStats((prev) => ({ ...prev, likeCount: prev.likeCount + 1 }));
   };
 
   const userKite = kites.find((k) => k.id === userKiteId);
 
   return (
     <div className="w-full h-screen bg-slate-950 flex items-center justify-center p-0 sm:p-4 overflow-hidden select-none">
-      {/* 9:16 Vertical Live Simulator Frame */}
       <div className="relative w-full h-full sm:max-w-[420px] sm:max-h-[820px] sm:rounded-[36px] bg-slate-900 overflow-hidden shadow-2xl border-0 sm:border-4 sm:border-slate-800 flex flex-col justify-between">
-        {/* Top Header Overlay */}
-        <HeaderOverlay
-          stats={stats}
-          kiteCount={kites.filter((k) => k.status !== 'falling').length}
-          muted={muted}
-          onToggleMute={() => {
-            const next = !muted;
-            setMuted(next);
-            soundFX.setMuted(next);
-          }}
-          onManualTriggerBattle={() => triggerBattle()}
-          onResetDemo={() => {
-            setKites([]);
-            setUserKiteId(null);
-            setUserKiteCut(false);
-            window.location.reload();
-          }}
-        />
-
-        {/* Floating Ranking Panel */}
+        {/* Top area intentionally contains ONLY the ranking */}
         <RankingPanel kites={kites} newLeaderAlert={newLeaderAlert} />
 
-        {/* Arena Event Alert Banner */}
-        <ArenaEventBanner currentEvent={currentEvent} />
-
-        {/* Main Canvas Arena (70% viewport) */}
         <div className="relative w-full h-full flex-1">
-          <ArenaCanvas
-            kites={kites}
-            currentBattle={currentBattle}
-            windSpeed={windSpeed}
-            onCanvasClick={handleCanvasClick}
-          />
-
-          {/* Interactive TikTok Floating Hearts */}
+          <ArenaCanvas kites={kites} currentBattle={currentBattle} windSpeed={windSpeed} onCanvasClick={handleCanvasClick} />
           <TikTokHearts hearts={hearts} />
-
-          {/* Battle Alert & Victory Overlay */}
-          <BattleBannerOverlay
-            battle={currentBattle}
-            victoryAnnouncement={victoryAnnouncement}
-          />
+          <BattleBannerOverlay battle={currentBattle} victoryAnnouncement={victoryAnnouncement} />
         </div>
 
-        {/* Live Event Feed Stream */}
         <EventFeed feed={feed} />
 
-        {/* Pinned Bottom Input Form Bar */}
         <BottomInputBar
           userKiteActive={!!userKite && userKite.status !== 'falling' && !userKiteCut}
           userKiteCut={userKiteCut}
@@ -822,13 +584,10 @@ export default function App() {
           onRespawn={handleUserRespawn}
           onOpenCustomizer={() => setIsCustomizerOpen(true)}
           onRequestInstantBattle={() => {
-            if (userKiteId) {
-              triggerBattle(userKiteId);
-            }
+            if (userKiteId) triggerBattle(userKiteId);
           }}
         />
 
-        {/* Kite Customizer Modal */}
         <KiteCustomizerModal
           isOpen={isCustomizerOpen}
           onClose={() => setIsCustomizerOpen(false)}
