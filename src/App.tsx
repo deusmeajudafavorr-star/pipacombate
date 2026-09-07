@@ -490,16 +490,20 @@ export default function App() {
   }, [currentEvent, triggerBattle, addFeedItem]);
 
   const handleUserJoin = (nickname: string) => {
-    setUserNickname(nickname);
+    const cleanNickname = nickname.trim();
+    if (!cleanNickname) return;
+
+    setUserNickname(cleanNickname);
     setUserKiteCut(false);
     soundFX.playEnter();
-    const x = 30 + Math.random() * 40;
-    const targetY = 20 + Math.random() * 40;
-    const newKiteId = `user_${Date.now()}`;
+
+    const x = 22 + Math.random() * 56;
+    const targetY = 18 + Math.random() * 45;
+    const newUserKiteId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const newUserKite: KiteState = {
-      id: newKiteId,
-      nickname,
+      id: newUserKiteId,
+      nickname: cleanNickname,
       isUser: true,
       isBot: false,
       shape: userCustoms.shape,
@@ -526,10 +530,10 @@ export default function App() {
       crown: false,
     };
 
-    setUserKiteId(newKiteId);
-    setKites((prev) => [...prev.filter((k) => !k.isUser), newUserKite]);
-    addFeedItem({ type: 'join', nickname, message: 'entrou oficialmente na arena de PIPA COMBATE!', icon: '🔥' });
-    confetti({ particleCount: 50, spread: 50, origin: { y: 0.8 } });
+    setUserKiteId(newUserKiteId);
+    setKites((prev) => [...prev, newUserKite]);
+    addFeedItem({ type: 'join', nickname: cleanNickname, message: 'entrou oficialmente na arena de PIPA COMBATE!', icon: '🔥' });
+    confetti({ particleCount: 30, spread: 40, origin: { y: 0.8 } });
   };
 
   const handleUserRespawn = () => {
