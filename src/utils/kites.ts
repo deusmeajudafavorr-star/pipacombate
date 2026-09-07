@@ -17,9 +17,15 @@ export function drawKiteOnCanvas(
   const sway = Math.sin(time * 0.003 + (kite.x * 0.1)) * 0.1;
   ctx.rotate((kite.angle * Math.PI) / 180 + sway);
 
-  // Scale based on status (e.g. victorious zooms slightly, falling rotates and shrinks)
+  // Scale based on status. Entering kites grow smoothly from small to normal size.
   let scale = 1;
-  if (kite.status === 'victorious') {
+  let entryAlpha = 1;
+  if (kite.status === 'entering') {
+    const progress = Math.max(0, Math.min(1, kite.entryProgress));
+    const eased = 1 - Math.pow(1 - progress, 3);
+    scale = 0.55 + eased * 0.45;
+    entryAlpha = 0.35 + eased * 0.65;
+  } else if (kite.status === 'victorious') {
     scale = 1.25 + Math.sin(time * 0.01) * 0.05;
   } else if (kite.status === 'falling') {
     scale = Math.max(0.3, 1 - kite.fallProgress * 0.7);
@@ -27,9 +33,23 @@ export function drawKiteOnCanvas(
   } else if (kite.status === 'battling') {
     scale = 1.15;
   }
+  ctx.globalAlpha = entryAlpha;
   ctx.scale(scale, scale);
 
   const size = kite.shape === 'pipao' ? 26 : kite.shape === 'peixinho' ? 18 : 22;
+
+  // Small entry glow/ring to make each new kite visibly announce its arrival.
+  if (kite.status === 'entering') {
+    const pulse = 0.7 + Math.sin(time * 0.02) * 0.2;
+    ctx.save();
+    ctx.globalAlpha = (1 - Math.min(kite.entryProgress, 1)) * 0.55 * pulse;
+    ctx.strokeStyle = kite.primaryColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * (1.7 - Math.min(kite.entryProgress, 1) * 0.5), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // Draw Kite Skin according to shape & pattern
   drawKiteShape(ctx, kite.shape, kite.primaryColor, kite.secondaryColor, kite.pattern, size);
@@ -258,17 +278,8 @@ function drawKiteLine(
 
   ctx.quadraticCurveTo(sagX, sagY, targetX, targetY);
 
-  if (kite.lineType === 'chileana') {
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)'; // Red Chileana
-    ctx.lineWidth = 1.8;
-  } else if (kite.lineType === 'cerol_extra') {
-    ctx.strokeStyle = 'rgba(234, 179, 8, 0.8)'; // Gold Cerol
-    ctx.lineWidth = 2.0;
-  } else {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // White Linha 10
-    ctx.lineWidth = 1.2;
-  }
-
+  ctx.strokeStyle = kite.status === 'battling' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.25)';
+  ctx.lineWidth = kite.status === 'battling' ? 1.5 : 0.8;
   ctx.stroke();
   ctx.restore();
 }
@@ -281,65 +292,28 @@ function drawKiteTag(
   size: number,
   canvasHeight: number
 ) {
+  const label = `@${kite.nickname}`;
+  const rankLabel = kite.rank ? `#${kite.rank}` : '';
+
   ctx.save();
+  ctx.font = 'bold 10px Arial';
+  const textWidth = ctx.measureText(label).width;
+  const tagY = Math.max(18, y - size - 8);
 
-  // Position tag above kite
-  const tagY = y - size - 16;
-
-  // Crown for Leader (#1)
-  if (kite.crown || kite.rank === 1) {
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('👑', x, tagY - 14);
-
-    // Glow aura for #1 leader
-    const gradient = ctx.createRadialGradient(x, tagY - 10, 2, x, tagY - 10, 25);
-    gradient.addColorStop(0, 'rgba(250, 204, 21, 0.5)');
-    gradient.addColorStop(1, 'rgba(250, 204, 21, 0)');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, tagY - 10, 25, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Rank emoji prefix
-  let rankEmoji = '';
-  if (kite.rank === 1) rankEmoji = '👑 ';
-  else if (kite.rank === 2) rankEmoji = '🥈 ';
-  else if (kite.rank === 3) rankEmoji = '🥉 ';
-
-  // User indicator tag
-  const isUser = kite.isUser;
-  const nameText = `${rankEmoji}${kite.nickname}${isUser ? ' (VOCÊ)' : ''}`;
-
-  ctx.font = isUser ? 'bold 12px "Outfit", sans-serif' : '11px "Plus Jakarta Sans", sans-serif';
-
-  const textWidth = ctx.measureText(nameText).width;
-  const paddingX = 8;
-  const height = 20;
-
-  // Tag Background
-  ctx.fillStyle = isUser ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 23, 42, 0.8)';
-  ctx.strokeStyle = isUser ? '#fef08a' : 'rgba(255, 255, 255, 0.3)';
-  ctx.lineWidth = isUser ? 2 : 1;
-
+  ctx.fillStyle = kite.isUser ? 'rgba(16, 185, 129, 0.9)' : 'rgba(15, 23, 42, 0.82)';
   ctx.beginPath();
-  ctx.roundRect(x - textWidth / 2 - paddingX, tagY - height / 2, textWidth + paddingX * 2, height, 10);
+  ctx.roundRect(x - textWidth / 2 - 5, tagY - 10, textWidth + 10, 15, 6);
   ctx.fill();
-  ctx.stroke();
 
-  // Tag Text
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(nameText, x, tagY);
+  ctx.fillText(label, x, tagY - 2);
 
-  // Score pill below kite
-  if (kite.score > 0 || kite.combo > 1) {
-    const comboText = kite.combo > 1 ? `🔥 x${kite.combo} | ${kite.score} pts` : `⭐ ${kite.score} pts`;
-    ctx.font = 'bold 10px sans-serif';
-    ctx.fillStyle = '#facc15';
-    ctx.fillText(comboText, x, y + size + 16);
+  if (kite.crown || rankLabel) {
+    ctx.font = 'bold 9px Arial';
+    ctx.fillStyle = kite.crown ? '#facc15' : '#cbd5e1';
+    ctx.fillText(`${kite.crown ? '👑 ' : ''}${rankLabel}`, x, tagY - 14);
   }
 
   ctx.restore();
