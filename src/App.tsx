@@ -63,6 +63,7 @@ export default function App() {
 
   // Kites List
   const [kites, setKites] = useState<KiteState[]>([]);
+  const [botsEnabled, setBotsEnabled] = useState(true);
 
   // Battles
   const [currentBattle, setCurrentBattle] = useState<BattleState | null>(null);
@@ -255,6 +256,8 @@ export default function App() {
   // Keep arena populated with bots if count drops below 7
   useEffect(() => {
     const interval = setInterval(() => {
+      if (!botsEnabled) return;
+
       const currentCount = kitesRef.current.filter((k) => k.status === 'flying').length;
       if (currentCount < 8) {
         const existingNames = kitesRef.current.map((k) => k.nickname);
@@ -301,7 +304,7 @@ export default function App() {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [addFeedItem]);
+  }, [addFeedItem, botsEnabled]);
 
   // Simulated Audience Comments in Feed
   useEffect(() => {
@@ -493,6 +496,7 @@ export default function App() {
     const cleanNickname = nickname.trim();
     if (!cleanNickname) return;
 
+    setBotsEnabled(true);
     setUserNickname(cleanNickname);
     setUserKiteCut(false);
     soundFX.playEnter();
@@ -534,6 +538,22 @@ export default function App() {
     setKites((prev) => [...prev, newUserKite]);
     addFeedItem({ type: 'join', nickname: cleanNickname, message: 'entrou oficialmente na arena de PIPA COMBATE!', icon: '🔥' });
     confetti({ particleCount: 30, spread: 40, origin: { y: 0.8 } });
+  };
+
+  const handleResetArena = () => {
+    battleInProgressRef.current = false;
+    setBotsEnabled(false);
+    setKites([]);
+    setUserNickname('');
+    setUserKiteId(null);
+    setUserKiteCut(false);
+    setCurrentBattle(null);
+    setVictoryAnnouncement(null);
+    setCurrentEvent(null);
+    setWindSpeed(1.0);
+    setNewLeaderAlert(null);
+    setHearts([]);
+    currentLeaderIdRef.current = null;
   };
 
   const handleUserRespawn = () => {
@@ -587,6 +607,7 @@ export default function App() {
           onJoinBattle={handleUserJoin}
           onRespawn={handleUserRespawn}
           onOpenCustomizer={() => setIsCustomizerOpen(true)}
+          onResetArena={handleResetArena}
           onRequestInstantBattle={() => {
             if (userKiteId) triggerBattle(userKiteId);
           }}
