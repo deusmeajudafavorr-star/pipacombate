@@ -1,0 +1,6 @@
+{
+  "name": "Pipa Combate AO VIVO",
+  "description": "Simulador visual de batalha de pipas estilo TikTok Live com combate automático, ranking ao vivo e eventos em tempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
